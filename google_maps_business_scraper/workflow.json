@@ -1,0 +1,284 @@
+{
+  "name": "Google Maps Business Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "2cf0a01d-07ec-46b8-bd84-109332a7cd4c",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2704,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1L5PuAImxrXj7yW7JoCQ9aakEDLMdaTMlZvLHqgksgBc/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "SearchRequests",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L5PuAImxrXj7yW7JoCQ9aakEDLMdaTMlZvLHqgksgBc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "d7d160a6-68b2-4659-89ad-949339ccd7e9",
+      "name": "Read Search Requests",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        -384
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "X64wyX5w0erCgCYL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://local-business-data.p.rapidapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.Keyword + ' in ' + $json.Location }}"
+            },
+            {
+              "name": "limit",
+              "value": "25"
+            },
+            {
+              "name": "extract_emails_and_contacts",
+              "value": "true"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "local-business-data.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": ""
+            },
+            {
+              "name": "extract_emails_and_contacts",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6b4d2997-6067-4ba9-b229-208e39e6da17",
+      "name": "Search Businesses API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2256,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nconst businesses = $input.first().json.data || [];\nconst searchId = $input.first().json.ID;\n\nfor (const b of businesses) {\n  results.push({\n    json: {\n      'Search ID': searchId,\n      'Business Name': b.name || '',\n      'Phone': b.phone_number || '',\n      'Email': (b.emails_and_contacts && b.emails_and_contacts.emails && b.emails_and_contacts.emails[0]) || '',\n      'Address': b.full_address || '',\n      'Website': b.website || ''\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "32439cb4-ee8a-43e2-9269-6eca2929c8f3",
+      "name": "Format Business Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2032,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "=https://docs.google.com/spreadsheets/d/1L5PuAImxrXj7yW7JoCQ9aakEDLMdaTMlZvLHqgksgBc/edit?gid=72104887#gid=72104887",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 72104887,
+          "mode": "list",
+          "cachedResultName": "BusinessResults",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L5PuAImxrXj7yW7JoCQ9aakEDLMdaTMlZvLHqgksgBc/edit#gid=72104887"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Search ID": "={{ $('Read Search Requests').item.json.ID }}",
+            "Business Name": "={{ $json['Business Name'] }}",
+            "Phone": "={{ $json.Phone }}",
+            "Email": "={{ $json.Email }}",
+            "Address": "={{ $json.Address }}",
+            "Website": "={{ $json.Website }}"
+          },
+          "matchingColumns": [
+            "Search ID"
+          ],
+          "schema": [
+            {
+              "id": "Search ID",
+              "displayName": "Search ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Business Name",
+              "displayName": "Business Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2469d9e6-37ab-4c84-9b13-b0b842e520b6",
+      "name": "Write to Business Results",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1808,
+        -384
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "X64wyX5w0erCgCYL",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Search Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Search Requests": {
+      "main": [
+        [
+          {
+            "node": "Search Businesses API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Businesses API": {
+      "main": [
+        [
+          {
+            "node": "Format Business Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Business Results": {
+      "main": [
+        [
+          {
+            "node": "Write to Business Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write to Business Results": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cd55f58d-05e5-45a2-95bc-892ebce6fe35",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cbea2696799a81590ca0e655495b3264ec2dabd5baeb3478fa5b28d150859d71"
+  },
+  "id": "i6WDoRH24MnExZgK",
+  "tags": []
+}
